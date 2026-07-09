@@ -612,7 +612,7 @@
             <p id="resultMessage"></p>
             <div class="result-detail" id="resultDetail"></div>
             <div class="button-group">
-                <button class="btn-primary" onclick="startGame()">🔄 再玩一次</button>
+                <button class="btn-primary" onclick="playAgain()">🔄 再玩一次</button>
                 <button class="btn-secondary" onclick="closeResultModal()">✅ 關閉</button>
             </div>
         </div>
@@ -992,6 +992,15 @@
             document.getElementById('resultModal').style.display = 'none';
         }
 
+        function playAgain() {
+            // 先關閉模態框
+            closeResultModal();
+            // 再重新開始遊戲
+            resetGame();
+            // 自動開始新遊戲
+            startGame();
+        }
+
         function resetGame() {
             if (gameState.timerInterval) {
                 clearInterval(gameState.timerInterval);
@@ -1002,7 +1011,6 @@
             document.getElementById('timerDisplay').textContent = '--:--';
             document.getElementById('timerDisplay').classList.remove('warning');
             initializeGame();
-            closeResultModal();
         }
 
         function playSound(type) {
