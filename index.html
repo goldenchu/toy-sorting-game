@@ -157,6 +157,7 @@
             flex-direction: column;
             position: relative;
             overflow: hidden;
+            transition: all 0.3s ease;
         }
 
         .basket::before {
@@ -168,6 +169,23 @@
             height: 15px;
             background: linear-gradient(to right, #d4a574, #e6b887, #d4a574);
             border-radius: 20px 20px 0 0;
+        }
+
+        .basket.error {
+            border-color: #ff6b6b;
+            background: linear-gradient(to bottom, #ffe8e8 0%, #ffd9d9 100%);
+            animation: shake 0.5s ease;
+        }
+
+        .basket.success {
+            border-color: #27ae60;
+            background: linear-gradient(to bottom, #e8f8f0 0%, #d1f0e6 100%);
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
         }
 
         .basket-label {
@@ -275,6 +293,15 @@
             color: #ff6b6b;
         }
 
+        .timer-display.warning {
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.5; }
+        }
+
         .modal {
             display: none;
             position: fixed;
@@ -342,10 +369,12 @@
 
         .result-correct {
             color: #27ae60;
+            margin-bottom: 8px;
         }
 
         .result-wrong {
             color: #e74c3c;
+            margin-bottom: 8px;
         }
 
         .modal-content .button-group {
@@ -430,6 +459,47 @@
         @keyframes pulse {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.05); }
+        }
+
+        .error-feedback {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            z-index: 2000;
+            text-align: center;
+            display: none;
+            animation: popIn 0.3s ease;
+        }
+
+        @keyframes popIn {
+            0% {
+                transform: translate(-50%, -50%) scale(0.5);
+                opacity: 0;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+        }
+
+        .error-feedback.show {
+            display: block;
+        }
+
+        .error-feedback .icon {
+            font-size: 5em;
+            margin-bottom: 20px;
+        }
+
+        .error-feedback .message {
+            font-size: 1.5em;
+            color: #e74c3c;
+            font-weight: bold;
         }
 
         @media (max-width: 768px) {
@@ -528,6 +598,12 @@
         </div>
     </div>
 
+    <!-- 錯誤反饋 -->
+    <div id="errorFeedback" class="error-feedback">
+        <div class="icon">❌</div>
+        <div class="message">放錯籃子了！請放入正確的籃子。</div>
+    </div>
+
     <!-- 結果模態框 -->
     <div id="resultModal" class="modal">
         <div class="modal-content">
@@ -559,7 +635,9 @@
             timerInterval: null,
             moves: [],
             totalMoves: 0,
-            correctMoves: 0
+            correctMoves: 0,
+            gameStarted: false,
+            timeLeft: 60
         };
 
         function initializeGame() {
@@ -568,6 +646,8 @@
             gameState.moves = [];
             gameState.totalMoves = 0;
             gameState.correctMoves = 0;
+            gameState.gameStarted = false;
+            gameState.timeLeft = 60;
 
             // 初始化籃子
             Object.keys(CATEGORIES).forEach(key => {
@@ -617,13 +697,15 @@
                 initializeGame();
             }
 
+            gameState.gameStarted = true;
+
             // 清除之前的計時器
             if (gameState.timerInterval) {
                 clearInterval(gameState.timerInterval);
             }
 
             gameState.startTime = Date.now();
-            document.getElementById('timerDisplay').textContent = '01:00';
+            gameState.timeLeft = 60;
 
             if (gameState.mode === 'timed') {
                 startTimer();
@@ -637,23 +719,34 @@
         }
 
         function startTimer() {
-            let timeLeft = 60;
             gameState.timerInterval = setInterval(() => {
-                timeLeft--;
-                const minutes = Math.floor(timeLeft / 60);
-                const seconds = timeLeft % 60;
-                document.getElementById('timerDisplay').textContent = 
-                    `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                gameState.timeLeft--;
+                updateTimerDisplay();
 
-                if (timeLeft <= 0) {
+                if (gameState.timeLeft <= 0) {
                     clearInterval(gameState.timerInterval);
+                    gameState.gameStarted = false;
                     endGame(false, '時間到！');
                 }
             }, 1000);
         }
 
+        function updateTimerDisplay() {
+            const minutes = Math.floor(gameState.timeLeft / 60);
+            const seconds = gameState.timeLeft % 60;
+            const timerDisplay = document.getElementById('timerDisplay');
+            timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            
+            // 時間少於10秒時閃爍
+            if (gameState.timeLeft <= 10 && gameState.timeLeft > 0) {
+                timerDisplay.classList.add('warning');
+            } else {
+                timerDisplay.classList.remove('warning');
+            }
+        }
+
         function updateTimer() {
-            if (gameState.startTime) {
+            if (gameState.startTime && gameState.mode !== 'timed') {
                 const elapsed = Math.floor((Date.now() - gameState.startTime) / 1000);
                 const minutes = Math.floor(elapsed / 60);
                 const seconds = elapsed % 60;
@@ -715,6 +808,7 @@
                 const category = CATEGORIES[key];
                 const basket = document.createElement('div');
                 basket.className = 'basket';
+                basket.id = `basket-${key}`;
 
                 const items = gameState.baskets[key];
                 let itemsHTML = '';
@@ -738,40 +832,43 @@
                 basket.addEventListener('dragover', (e) => {
                     e.preventDefault();
                     e.dataTransfer.dropEffect = 'move';
-                    basket.style.opacity = '0.7';
-                });
-
-                basket.addEventListener('dragleave', () => {
-                    basket.style.opacity = '1';
                 });
 
                 basket.addEventListener('drop', (e) => {
                     e.preventDefault();
-                    basket.style.opacity = '1';
                     const cardIndex = parseInt(e.dataTransfer.getData('cardIndex'));
-                    moveCard(cardIndex, key);
+                    moveCard(cardIndex, key, basket);
                 });
 
                 container.appendChild(basket);
             });
         }
 
-        function moveCard(cardIndex, basketKey) {
+        function moveCard(cardIndex, basketKey, basketElement) {
+            if (!gameState.gameStarted) {
+                return;
+            }
+
             const card = gameState.cards[cardIndex];
             const isCorrect = card === basketKey;
 
-            // 記錄移動
+            if (!isCorrect) {
+                // 顯示錯誤反饋
+                showErrorFeedback(basketElement);
+                playSound('error');
+                return; // 不允許放入
+            }
+
+            // 放置正確 - 才能執行後續操作
             gameState.moves.push({
                 cardIndex,
                 basketKey,
                 cardType: card,
-                isCorrect
+                isCorrect: true
             });
 
             gameState.totalMoves++;
-            if (isCorrect) {
-                gameState.correctMoves++;
-            }
+            gameState.correctMoves++;
 
             // 從卡片區移除
             gameState.cards.splice(cardIndex, 1);
@@ -779,28 +876,37 @@
             // 放入籃子
             gameState.baskets[basketKey].push(card);
 
-            // 如果是聽音辨位模式，播放反饋
-            if (gameState.mode === 'voice') {
-                if (isCorrect) {
-                    playSound('success');
-                } else {
-                    playSound('error');
-                    // 立即移出
-                    gameState.baskets[basketKey].pop();
-                    gameState.cards.push(card);
-                    gameState.cards.sort(() => Math.random() - 0.5);
-                }
-            }
+            // 播放成功音效
+            playSound('success');
 
             updateUI();
             renderGame();
 
             // 檢查遊戲是否結束
             if (gameState.cards.length === 0) {
+                gameState.gameStarted = false;
+                if (gameState.timerInterval) {
+                    clearInterval(gameState.timerInterval);
+                }
                 endGame(true);
             } else if (gameState.mode === 'voice') {
                 announceNextItem();
             }
+        }
+
+        function showErrorFeedback(basketElement) {
+            // 籃子震動並變紅
+            basketElement.classList.add('error');
+            setTimeout(() => {
+                basketElement.classList.remove('error');
+            }, 500);
+
+            // 顯示錯誤提示
+            const errorFeedback = document.getElementById('errorFeedback');
+            errorFeedback.classList.add('show');
+            setTimeout(() => {
+                errorFeedback.classList.remove('show');
+            }, 1500);
         }
 
         function undoLastMove() {
@@ -815,9 +921,7 @@
             gameState.cards.push(lastMove.cardType);
 
             // 更新統計
-            if (lastMove.isCorrect) {
-                gameState.correctMoves--;
-            }
+            gameState.correctMoves--;
             gameState.totalMoves--;
 
             updateUI();
@@ -831,7 +935,7 @@
         function updateUI() {
             document.getElementById('cardsRemaining').textContent = gameState.cards.length;
 
-            if (!gameState.mode === 'timed' && gameState.startTime) {
+            if (gameState.mode !== 'timed' && gameState.gameStarted) {
                 updateTimer();
             }
 
@@ -842,10 +946,6 @@
         }
 
         function endGame(success, timeoutMessage = null) {
-            if (gameState.timerInterval) {
-                clearInterval(gameState.timerInterval);
-            }
-
             const modal = document.getElementById('resultModal');
             const resultEmoji = document.getElementById('resultEmoji');
             const resultTitle = document.getElementById('resultTitle');
@@ -896,33 +996,39 @@
             if (gameState.timerInterval) {
                 clearInterval(gameState.timerInterval);
             }
+            gameState.gameStarted = false;
             gameState.startTime = null;
+            gameState.timeLeft = 60;
             document.getElementById('timerDisplay').textContent = '--:--';
+            document.getElementById('timerDisplay').classList.remove('warning');
             initializeGame();
             closeResultModal();
         }
 
         function playSound(type) {
-            // 簡單的音頻反饋（使用 Web Audio API）
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
 
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
 
-            if (type === 'success') {
-                oscillator.frequency.value = 800;
-                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
-                oscillator.start(audioContext.currentTime);
-                oscillator.stop(audioContext.currentTime + 0.2);
-            } else {
-                oscillator.frequency.value = 300;
-                gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-                oscillator.start(audioContext.currentTime);
-                oscillator.stop(audioContext.currentTime + 0.1);
+                if (type === 'success') {
+                    oscillator.frequency.value = 800;
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.2);
+                } else {
+                    oscillator.frequency.value = 300;
+                    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.1);
+                }
+            } catch (e) {
+                console.log('Audio context not available');
             }
         }
 
@@ -938,6 +1044,13 @@
                 closeResultModal();
             }
         });
+
+        // 定期更新普通模式的計時器
+        setInterval(() => {
+            if (gameState.gameStarted && gameState.mode !== 'timed') {
+                updateTimer();
+            }
+        }, 100);
     </script>
 </body>
 </html>
