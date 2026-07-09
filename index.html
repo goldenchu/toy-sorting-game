@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>玩具分類遊戲</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.95;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .info-box {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            min-width: 200px;
+        }
+
+        .info-box h3 {
+            color: #667eea;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .info-box .value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #764ba2;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .section {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .section-title {
+            font-size: 1.5em;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .cards-area {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            min-height: 250px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px dashed #ddd;
+        }
+
+        .card {
+            background: white;
+            border: 3px solid #667eea;
+            border-radius: 10px;
+            padding: 20px;
+            cursor: grab;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 3em;
+            transition: all 0.3s ease;
+            user-select: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .card.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+
+        .card-label {
+            font-size: 0.4em;
+            color: #666;
+            margin-top: 5px;
+            text-align: center;
+        }
+
+        .baskets-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .basket {
+            background: linear-gradient(to bottom, #f5f5f5 0%, #e8e8e8 100%);
+            border: 3px solid #999;
+            border-radius: 20px;
+            padding: 20px;
+            text-align: center;
+            min-height: 220px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .basket::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 15px;
+            background: linear-gradient(to right, #d4a574, #e6b887, #d4a574);
+            border-radius: 20px 20px 0 0;
+        }
+
+        .basket-label {
+            font-size: 2em;
+            margin-bottom: 10px;
+            margin-top: 5px;
+        }
+
+        .basket-type {
+            font-size: 0.9em;
+            color: #555;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .basket-items {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            flex: 1;
+            background: white;
+            padding: 10px;
+            border-radius: 10px;
+            min-height: 120px;
+        }
+
+        .basket-item {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            padding: 5px;
+        }
+
+        .basket-count {
+            font-size: 0.8em;
+            color: #888;
+            margin-top: 10px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 1.1em;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn-secondary {
+            background: #764ba2;
+            color: white;
+            box-shadow: 0 4px 15px rgba(118, 75, 162, 0.4);
+        }
+
+        .btn-secondary:hover {
+            background: #653a8a;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(118, 75, 162, 0.6);
+        }
+
+        .btn-danger {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #ee5a52;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .timer-display {
+            font-size: 2em;
+            font-weight: bold;
+            color: #ff6b6b;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 40px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-content h2 {
+            font-size: 2.5em;
+            color: #764ba2;
+            margin-bottom: 20px;
+        }
+
+        .modal-content .emoji {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        .modal-content p {
+            font-size: 1.1em;
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        .modal-content .result-detail {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-size: 1em;
+        }
+
+        .result-correct {
+            color: #27ae60;
+        }
+
+        .result-wrong {
+            color: #e74c3c;
+        }
+
+        .modal-content .button-group {
+            margin-top: 30px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .modal-content .button-group button {
+            flex: 1;
+        }
+
+        .game-mode-selector {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .mode-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        .mode-btn {
+            padding: 12px 20px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .mode-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .mode-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .challenge-info {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .challenge-info.show {
+            display: block;
+        }
+
+        .voice-instruction {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+            display: none;
+            text-align: center;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #0c5460;
+        }
+
+        .voice-instruction.show {
+            display: block;
+            animation: pulse 0.5s ease;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @media (max-width: 768px) {
+            .game-board {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .cards-area {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .baskets-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .game-info {
+                flex-direction: column;
+            }
+
+            .info-box {
+                min-width: auto;
+            }
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 250px;
+            color: #999;
+            font-size: 1.1em;
+        }
+
+        .empty-state-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎮 玩具分類遊戲</h1>
+            <p>將相同的玩具放進同一個籃子中</p>
+        </div>
+
+        <div class="game-mode-selector">
+            <h3>選擇遊戲模式</h3>
+            <div class="mode-buttons">
+                <button class="mode-btn active" onclick="setGameMode('normal')">🎯 普通模式</button>
+                <button class="mode-btn" onclick="setGameMode('timed')">⏱️ 限時挑戰</button>
+                <button class="mode-btn" onclick="setGameMode('voice')">🎤 聽音辨位</button>
+            </div>
+            <div class="challenge-info" id="challengeInfo">
+                ⏱️ <strong>限時挑戰：</strong> 你有 1 分鐘時間將所有卡片放進正確的籃子裡！
+            </div>
+            <div class="voice-instruction" id="voiceInstruction"></div>
+        </div>
+
+        <div class="game-info">
+            <div class="info-box">
+                <h3>剩餘卡片</h3>
+                <div class="value" id="cardsRemaining">12</div>
+            </div>
+            <div class="info-box">
+                <h3>計時器</h3>
+                <div class="timer-display" id="timerDisplay">--:--</div>
+            </div>
+            <div class="info-box">
+                <h3>正確率</h3>
+                <div class="value" id="accuracyDisplay">0%</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn-primary" onclick="startGame()">🎮 開始遊戲</button>
+            <button class="btn-secondary" onclick="resetGame()">🔄 重新開始</button>
+            <button class="btn-danger" onclick="undoLastMove()">↩️ 撤銷上一步</button>
+        </div>
+
+        <div class="game-board">
+            <div class="section">
+                <div class="section-title">📦 待分類卡片</div>
+                <div class="cards-area" id="cardsArea"></div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">🧺 分類籃子</div>
+                <div class="baskets-grid" id="basketsContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結果模態框 -->
+    <div id="resultModal" class="modal">
+        <div class="modal-content">
+            <div class="emoji" id="resultEmoji">🎉</div>
+            <h2 id="resultTitle">遊戲完成！</h2>
+            <p id="resultMessage"></p>
+            <div class="result-detail" id="resultDetail"></div>
+            <div class="button-group">
+                <button class="btn-primary" onclick="startGame()">🔄 再玩一次</button>
+                <button class="btn-secondary" onclick="closeResultModal()">✅ 關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CATEGORIES = {
+            'doll': { emoji: '🧸', label: '布偶', type: 'doll' },
+            'block': { emoji: '🧱', label: '積木', type: 'block' },
+            'car': { emoji: '🚗', label: '玩具汽車', type: 'car' },
+            'ball': { emoji: '🏀', label: '球類', type: 'ball' }
+        };
+
+        const ITEMS_PER_CATEGORY = 3;
+        let gameState = {
+            mode: 'normal',
+            cards: [],
+            baskets: {},
+            startTime: null,
+            timerInterval: null,
+            moves: [],
+            totalMoves: 0,
+            correctMoves: 0
+        };
+
+        function initializeGame() {
+            gameState.cards = [];
+            gameState.baskets = {};
+            gameState.moves = [];
+            gameState.totalMoves = 0;
+            gameState.correctMoves = 0;
+
+            // 初始化籃子
+            Object.keys(CATEGORIES).forEach(key => {
+                gameState.baskets[key] = [];
+            });
+
+            // 生成卡片
+            Object.keys(CATEGORIES).forEach(key => {
+                for (let i = 0; i < ITEMS_PER_CATEGORY; i++) {
+                    gameState.cards.push(key);
+                }
+            });
+
+            // 洗牌
+            gameState.cards = gameState.cards.sort(() => Math.random() - 0.5);
+
+            renderGame();
+            updateUI();
+        }
+
+        function setGameMode(mode) {
+            gameState.mode = mode;
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            const challengeInfo = document.getElementById('challengeInfo');
+            const voiceInstruction = document.getElementById('voiceInstruction');
+
+            if (mode === 'timed') {
+                challengeInfo.classList.add('show');
+                voiceInstruction.classList.remove('show');
+            } else if (mode === 'voice') {
+                challengeInfo.classList.remove('show');
+                voiceInstruction.classList.add('show');
+            } else {
+                challengeInfo.classList.remove('show');
+                voiceInstruction.classList.remove('show');
+            }
+
+            if (gameState.cards.length > 0) {
+                resetGame();
+            }
+        }
+
+        function startGame() {
+            if (gameState.cards.length === 0) {
+                initializeGame();
+            }
+
+            // 清除之前的計時器
+            if (gameState.timerInterval) {
+                clearInterval(gameState.timerInterval);
+            }
+
+            gameState.startTime = Date.now();
+            document.getElementById('timerDisplay').textContent = '01:00';
+
+            if (gameState.mode === 'timed') {
+                startTimer();
+            } else {
+                updateTimer();
+            }
+
+            if (gameState.mode === 'voice') {
+                announceNextItem();
+            }
+        }
+
+        function startTimer() {
+            let timeLeft = 60;
+            gameState.timerInterval = setInterval(() => {
+                timeLeft--;
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                document.getElementById('timerDisplay').textContent = 
+                    `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+                if (timeLeft <= 0) {
+                    clearInterval(gameState.timerInterval);
+                    endGame(false, '時間到！');
+                }
+            }, 1000);
+        }
+
+        function updateTimer() {
+            if (gameState.startTime) {
+                const elapsed = Math.floor((Date.now() - gameState.startTime) / 1000);
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                document.getElementById('timerDisplay').textContent = 
+                    `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            }
+        }
+
+        function announceNextItem() {
+            if (gameState.cards.length > 0) {
+                const nextCard = gameState.cards[0];
+                const category = CATEGORIES[nextCard];
+                const instruction = document.getElementById('voiceInstruction');
+                instruction.textContent = `尋找：${category.emoji} ${category.label}`;
+                instruction.classList.add('show');
+            }
+        }
+
+        function renderGame() {
+            renderCards();
+            renderBaskets();
+        }
+
+        function renderCards() {
+            const cardsArea = document.getElementById('cardsArea');
+            cardsArea.innerHTML = '';
+
+            if (gameState.cards.length === 0) {
+                cardsArea.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><div>所有卡片都已分類！</div></div>';
+                return;
+            }
+
+            gameState.cards.forEach((cardType, index) => {
+                const category = CATEGORIES[cardType];
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.draggable = true;
+                card.innerHTML = `<div>${category.emoji}</div><div class="card-label">${category.label}</div>`;
+
+                card.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('cardIndex', index);
+                    card.classList.add('dragging');
+                });
+
+                card.addEventListener('dragend', () => {
+                    card.classList.remove('dragging');
+                });
+
+                cardsArea.appendChild(card);
+            });
+        }
+
+        function renderBaskets() {
+            const container = document.getElementById('basketsContainer');
+            container.innerHTML = '';
+
+            Object.keys(CATEGORIES).forEach(key => {
+                const category = CATEGORIES[key];
+                const basket = document.createElement('div');
+                basket.className = 'basket';
+
+                const items = gameState.baskets[key];
+                let itemsHTML = '';
+
+                if (items.length > 0) {
+                    items.forEach(itemType => {
+                        const itemCategory = CATEGORIES[itemType];
+                        itemsHTML += `<div class="basket-item">${itemCategory.emoji}</div>`;
+                    });
+                } else {
+                    itemsHTML = '<div style="grid-column: 1/-1; display: flex; align-items: center; justify-content: center; color: #ccc;">空籃子</div>';
+                }
+
+                basket.innerHTML = `
+                    <div class="basket-label">${category.emoji}</div>
+                    <div class="basket-type">${category.label}</div>
+                    <div class="basket-items">${itemsHTML}</div>
+                    <div class="basket-count">已放入: ${items.length}/${ITEMS_PER_CATEGORY}</div>
+                `;
+
+                basket.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    basket.style.opacity = '0.7';
+                });
+
+                basket.addEventListener('dragleave', () => {
+                    basket.style.opacity = '1';
+                });
+
+                basket.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    basket.style.opacity = '1';
+                    const cardIndex = parseInt(e.dataTransfer.getData('cardIndex'));
+                    moveCard(cardIndex, key);
+                });
+
+                container.appendChild(basket);
+            });
+        }
+
+        function moveCard(cardIndex, basketKey) {
+            const card = gameState.cards[cardIndex];
+            const isCorrect = card === basketKey;
+
+            // 記錄移動
+            gameState.moves.push({
+                cardIndex,
+                basketKey,
+                cardType: card,
+                isCorrect
+            });
+
+            gameState.totalMoves++;
+            if (isCorrect) {
+                gameState.correctMoves++;
+            }
+
+            // 從卡片區移除
+            gameState.cards.splice(cardIndex, 1);
+
+            // 放入籃子
+            gameState.baskets[basketKey].push(card);
+
+            // 如果是聽音辨位模式，播放反饋
+            if (gameState.mode === 'voice') {
+                if (isCorrect) {
+                    playSound('success');
+                } else {
+                    playSound('error');
+                    // 立即移出
+                    gameState.baskets[basketKey].pop();
+                    gameState.cards.push(card);
+                    gameState.cards.sort(() => Math.random() - 0.5);
+                }
+            }
+
+            updateUI();
+            renderGame();
+
+            // 檢查遊戲是否結束
+            if (gameState.cards.length === 0) {
+                endGame(true);
+            } else if (gameState.mode === 'voice') {
+                announceNextItem();
+            }
+        }
+
+        function undoLastMove() {
+            if (gameState.moves.length === 0) return;
+
+            const lastMove = gameState.moves.pop();
+            
+            // 從籃子移出
+            gameState.baskets[lastMove.basketKey].pop();
+            
+            // 放回卡片區
+            gameState.cards.push(lastMove.cardType);
+
+            // 更新統計
+            if (lastMove.isCorrect) {
+                gameState.correctMoves--;
+            }
+            gameState.totalMoves--;
+
+            updateUI();
+            renderGame();
+
+            if (gameState.mode === 'voice') {
+                announceNextItem();
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('cardsRemaining').textContent = gameState.cards.length;
+
+            if (!gameState.mode === 'timed' && gameState.startTime) {
+                updateTimer();
+            }
+
+            const accuracy = gameState.totalMoves > 0 
+                ? Math.round((gameState.correctMoves / gameState.totalMoves) * 100) 
+                : 0;
+            document.getElementById('accuracyDisplay').textContent = accuracy + '%';
+        }
+
+        function endGame(success, timeoutMessage = null) {
+            if (gameState.timerInterval) {
+                clearInterval(gameState.timerInterval);
+            }
+
+            const modal = document.getElementById('resultModal');
+            const resultEmoji = document.getElementById('resultEmoji');
+            const resultTitle = document.getElementById('resultTitle');
+            const resultMessage = document.getElementById('resultMessage');
+            const resultDetail = document.getElementById('resultDetail');
+
+            let detailHTML = '';
+            let allCorrect = true;
+
+            Object.keys(CATEGORIES).forEach(key => {
+                const category = CATEGORIES[key];
+                const items = gameState.baskets[key];
+                const isCorrect = items.length === ITEMS_PER_CATEGORY && items.every(item => item === key);
+                
+                if (!isCorrect) {
+                    allCorrect = false;
+                }
+
+                const status = isCorrect ? '✅ 正確' : '❌ 錯誤';
+                const correctClass = isCorrect ? 'result-correct' : 'result-wrong';
+                detailHTML += `<div class="${correctClass}"><strong>${category.emoji} ${category.label}</strong>: ${items.length}/${ITEMS_PER_CATEGORY} ${status}</div>`;
+            });
+
+            if (timeoutMessage) {
+                resultEmoji.textContent = '⏰';
+                resultTitle.textContent = timeoutMessage;
+                resultMessage.textContent = '雖然沒有完成，但你已經盡力了！繼續加油！';
+                allCorrect = false;
+            } else if (success && allCorrect) {
+                resultEmoji.textContent = '🎉';
+                resultTitle.textContent = '完美完成！';
+                resultMessage.textContent = '恭喜你！所有卡片都放進了正確的籃子！';
+            } else if (gameState.cards.length === 0) {
+                resultEmoji.textContent = '✨';
+                resultTitle.textContent = '遊戲結束！';
+                resultMessage.textContent = '你已經完成了所有卡片的分類！';
+            }
+
+            resultDetail.innerHTML = detailHTML;
+            modal.style.display = 'block';
+        }
+
+        function closeResultModal() {
+            document.getElementById('resultModal').style.display = 'none';
+        }
+
+        function resetGame() {
+            if (gameState.timerInterval) {
+                clearInterval(gameState.timerInterval);
+            }
+            gameState.startTime = null;
+            document.getElementById('timerDisplay').textContent = '--:--';
+            initializeGame();
+            closeResultModal();
+        }
+
+        function playSound(type) {
+            // 簡單的音頻反饋（使用 Web Audio API）
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            if (type === 'success') {
+                oscillator.frequency.value = 800;
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.2);
+            } else {
+                oscillator.frequency.value = 300;
+                gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.1);
+            }
+        }
+
+        // 初始化
+        window.addEventListener('load', () => {
+            initializeGame();
+        });
+
+        // 關閉模態框時的點擊事件
+        window.addEventListener('click', (e) => {
+            const modal = document.getElementById('resultModal');
+            if (e.target === modal) {
+                closeResultModal();
+            }
+        });
+    </script>
+</body>
+</html>
